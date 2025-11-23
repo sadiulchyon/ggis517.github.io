@@ -1,1 +1,1 @@
-# sadiulchyon.github.io
+ggis 517 course work materials as deposited
