@@ -1,962 +1,877 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <link rel="stylesheet" href="css/leaflet.css"><link rel="stylesheet" href="css/L.Control.Locate.min.css">
-        <link rel="stylesheet" href="css/qgis2web.css"><link rel="stylesheet" href="css/fontawesome-all.min.css">
-        <style>
-        html, body, #map {
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            margin: 0;
-        }
-        </style>
-        <title>alpha</title>
-    </head>
-    <body>
-        <div id="map">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A local-first swing trade planning and tracking dashboard.">
+  <title>Stitch Swing Trade Tracker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: rgba(15, 27, 47, 0.82);
+      --panel-strong: #101c31;
+      --line: rgba(148, 163, 184, 0.22);
+      --muted: #94a3b8;
+      --text: #e5eefb;
+      --accent: #58d6a4;
+      --accent-2: #6aa7ff;
+      --warn: #ffd166;
+      --danger: #ff6b6b;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+      --radius: 22px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(88, 214, 164, 0.18), transparent 34rem),
+        radial-gradient(circle at 85% 12%, rgba(106, 167, 255, 0.18), transparent 30rem),
+        linear-gradient(135deg, #06101f 0%, #0d1525 52%, #06111d 100%);
+      color: var(--text);
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid rgba(88, 214, 164, 0.35);
+      outline-offset: 2px;
+    }
+
+    .app-shell {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+      gap: 22px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .hero-card,
+    .panel,
+    .metric-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-card {
+      border-radius: 30px;
+      padding: 34px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -8rem -10rem auto;
+      width: 22rem;
+      height: 22rem;
+      border-radius: 999px;
+      background: rgba(88, 214, 164, 0.14);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--accent);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(2.1rem, 5vw, 4.8rem);
+      line-height: 0.94;
+      letter-spacing: -0.06em;
+    }
+
+    .hero p {
+      max-width: 780px;
+      color: #b9c7d8;
+      line-height: 1.7;
+      margin: 0;
+      font-size: 1.03rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger,
+    .btn-ghost {
+      border-radius: 999px;
+      padding: 12px 17px;
+      font-weight: 800;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #9ff6cf);
+      color: #062116;
+    }
+
+    .btn-secondary {
+      background: rgba(106, 167, 255, 0.14);
+      border: 1px solid rgba(106, 167, 255, 0.35);
+    }
+
+    .btn-danger {
+      background: rgba(255, 107, 107, 0.12);
+      border: 1px solid rgba(255, 107, 107, 0.35);
+      color: #ffd1d1;
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+    }
+
+    .account-card {
+      border-radius: 30px;
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+      background: linear-gradient(160deg, rgba(16, 28, 49, 0.94), rgba(12, 27, 43, 0.76));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .account-card label,
+    .field label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.83rem;
+      font-weight: 700;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(4, 11, 22, 0.58);
+      border-radius: 14px;
+      color: var(--text);
+      padding: 12px 13px;
+    }
+
+    textarea { resize: vertical; min-height: 92px; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .metric-card {
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      display: block;
+      margin-top: 12px;
+      font-size: clamp(1.45rem, 3vw, 2.35rem);
+      font-weight: 900;
+      letter-spacing: -0.05em;
+    }
+
+    .metric-note { color: var(--muted); margin-top: 6px; font-size: 0.86rem; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(310px, 390px) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+      letter-spacing: -0.03em;
+    }
+
+    .panel-body { padding: 22px; }
+
+    .trade-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .trade-table-wrap {
+      overflow: auto;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .toolbar input,
+    .toolbar select { width: auto; min-width: 150px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 920px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 15px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(2, 6, 14, 0.18);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
+
+    .symbol {
+      font-size: 1.02rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    .muted { color: var(--muted); }
+    .gain { color: var(--accent); }
+    .loss { color: var(--danger); }
+    .warn { color: var(--warn); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.76rem;
+      font-weight: 900;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(255, 255, 255, 0.045);
+      white-space: nowrap;
+    }
+
+    .pill.open { color: #bfe2ff; border-color: rgba(106, 167, 255, 0.35); }
+    .pill.watching { color: #ffefb7; border-color: rgba(255, 209, 102, 0.35); }
+    .pill.closed { color: #bff7dd; border-color: rgba(88, 214, 164, 0.35); }
+    .pill.stopped { color: #ffd1d1; border-color: rgba(255, 107, 107, 0.35); }
+
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .icon-btn {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--line);
+      font-weight: 800;
+    }
+
+    .empty-state {
+      display: none;
+      padding: 42px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .insights {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .insight-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 17px;
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .insight-card strong { display: block; margin-bottom: 8px; }
+    .insight-card span { color: var(--muted); line-height: 1.55; }
+
+    .file-input { display: none; }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      max-width: min(420px, calc(100vw - 48px));
+      padding: 14px 16px;
+      border-radius: 16px;
+      color: #062116;
+      background: linear-gradient(135deg, var(--accent), #b8ffd9);
+      box-shadow: var(--shadow);
+      transform: translateY(140%);
+      opacity: 0;
+      transition: 220ms ease;
+      font-weight: 800;
+      z-index: 10;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 1050px) {
+      .hero, .workspace { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar { justify-content: flex-start; }
+    }
+
+    @media (max-width: 640px) {
+      .app-shell { padding: 16px; }
+      .hero-card, .account-card, .panel-body { padding: 18px; }
+      .metrics, .field-grid, .insights { grid-template-columns: 1fr; }
+      .panel-header { align-items: flex-start; flex-direction: column; }
+      .toolbar input, .toolbar select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-card">
+        <span class="eyebrow">✦ Local-first trading workspace</span>
+        <h1 id="page-title">Stitch Swing Trade Tracker</h1>
+        <p>Plan entries, size risk, track exits, and review performance without sending your trading journal to a server. Everything is saved in this browser with import/export backups.</p>
+        <div class="hero-actions">
+          <button class="btn-primary" id="seedBtn" type="button">Load sample trades</button>
+          <button class="btn-secondary" id="exportBtn" type="button">Export JSON</button>
+          <button class="btn-ghost" id="importBtn" type="button">Import JSON</button>
+          <input class="file-input" id="importFile" type="file" accept="application/json,.json">
         </div>
-        <script src="js/qgis2web_expressions.js"></script>
-        <script src="js/leaflet.js"></script><script src="js/L.Control.Locate.min.js"></script>
-        <script src="js/leaflet.rotatedMarker.js"></script>
-        <script src="js/leaflet.pattern.js"></script>
-        <script src="js/leaflet-hash.js"></script>
-        <script src="js/Autolinker.min.js"></script>
-        <script src="js/rbush.min.js"></script>
-        <script src="js/labelgun.min.js"></script>
-        <script src="js/labels.js"></script>
-        <script src="data/Choroplethmap_2.js"></script>
-        <script>
-        var highlightLayer;
-        function highlightFeature(e) {
-            highlightLayer = e.target;
+      </div>
 
-            if (e.target.feature.geometry.type === 'LineString') {
-              highlightLayer.setStyle({
-                color: '#000000',
-              });
-            } else {
-              highlightLayer.setStyle({
-                fillColor: '#000000',
-                fillOpacity: 1
-              });
-            }
-            highlightLayer.openPopup();
-        }
-        var map = L.map('map', {
-            zoomControl:true, maxZoom:28, minZoom:1
-        }).fitBounds([[12.966678136956908,-163.65339512785917],[79.85095075181411,-38.03000721892363]]);
-        var hash = new L.Hash(map);
-        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
-        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
-        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
-        var bounds_group = new L.featureGroup([]);
-        function setBounds() {
-        }
-        map.createPane('pane_OpenStreetMap_0');
-        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
-        var layer_OpenStreetMap_0 = L.tileLayer('http://a.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            pane: 'pane_OpenStreetMap_0',
-            opacity: 1.0,
-            attribution: '',
-            minZoom: 1,
-            maxZoom: 28,
-            minNativeZoom: 0,
-            maxNativeZoom: 19
-        });
-        layer_OpenStreetMap_0;
-        map.addLayer(layer_OpenStreetMap_0);
-        map.createPane('pane_HeatMap_1');
-        map.getPane('pane_HeatMap_1').style.zIndex = 401;
-        var img_HeatMap_1 = 'data/HeatMap_1.png';
-        var img_bounds_HeatMap_1 = [[24.92146924093759,-123.13540171835953],[49.6658357658015,-67.38947253590749]];
-        var layer_HeatMap_1 = new L.imageOverlay(img_HeatMap_1,
-                                              img_bounds_HeatMap_1,
-                                              {pane: 'pane_HeatMap_1'});
-        bounds_group.addLayer(layer_HeatMap_1);
-        function pop_Choroplethmap_2(feature, layer) {
-            layer.on({
-                mouseout: function(e) {
-                    for (i in e.target._eventParents) {
-                        e.target._eventParents[i].resetStyle(e.target);
-                    }
-                    if (typeof layer.closePopup == 'function') {
-                        layer.closePopup();
-                    } else {
-                        layer.eachLayer(function(feature){
-                            feature.closePopup()
-                        });
-                    }
-                },
-                mouseover: highlightFeature,
-            });
-            var popupContent = '<table>\
-                    <tr>\
-                        <td colspan="2"><strong>Country</strong><br />' + (feature.properties['Country'] !== null ? autolinker.link(feature.properties['Country'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td colspan="2"><strong>States</strong><br />' + (feature.properties['States'] !== null ? autolinker.link(feature.properties['States'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">0_17_years</th>\
-                        <td>' + (feature.properties['0_17_years'] !== null ? autolinker.link(feature.properties['0_17_years'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">18_29_year</th>\
-                        <td>' + (feature.properties['18_29_year'] !== null ? autolinker.link(feature.properties['18_29_year'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">30_39_year</th>\
-                        <td>' + (feature.properties['30_39_year'] !== null ? autolinker.link(feature.properties['30_39_year'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">40_49_year</th>\
-                        <td>' + (feature.properties['40_49_year'] !== null ? autolinker.link(feature.properties['40_49_year'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">50_64_year</th>\
-                        <td>' + (feature.properties['50_64_year'] !== null ? autolinker.link(feature.properties['50_64_year'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">65_74_year</th>\
-                        <td>' + (feature.properties['65_74_year'] !== null ? autolinker.link(feature.properties['65_74_year'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">75_84_year</th>\
-                        <td>' + (feature.properties['75_84_year'] !== null ? autolinker.link(feature.properties['75_84_year'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <th scope="row">85 Years +</th>\
-                        <td>' + (feature.properties['85 Years +'] !== null ? autolinker.link(feature.properties['85 Years +'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td colspan="2"><strong>Total Death</strong><br />' + (feature.properties['Total Deat'] !== null ? autolinker.link(feature.properties['Total Deat'].toLocaleString()) : '') + '</td>\
-                    </tr>\
-                </table>';
-            layer.bindPopup(popupContent, {maxHeight: 400});
-        }
+      <aside class="account-card" aria-label="Account settings">
+        <label>
+          Account balance
+          <input id="accountBalance" type="number" min="0" step="100" inputmode="decimal">
+        </label>
+        <label>
+          Max risk per trade (%)
+          <input id="riskPercent" type="number" min="0" max="100" step="0.1" inputmode="decimal">
+        </label>
+        <label>
+          Preferred holding window
+          <select id="holdingWindow">
+            <option value="2-10 days">2-10 days</option>
+            <option value="1-4 weeks">1-4 weeks</option>
+            <option value="1-3 months">1-3 months</option>
+          </select>
+        </label>
+      </aside>
+    </section>
 
-        function style_Choroplethmap_2_0(feature) {
-            switch(String(feature.properties['Total Deat'])) {
-                case '1,456':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(237,198,179,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '1,822':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(240,202,183,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '1,828':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(243,206,188,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '10,040':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(245,210,193,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '10,898':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(248,200,179,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '103,286':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(250,196,175,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '12,102':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(248,200,179,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '12,426':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(254,217,200,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '12,469':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(254,211,193,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '14,663':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(253,205,185,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '14,680':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(253,200,178,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '15,052':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(253,194,170,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '15,135':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(253,189,163,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '17,464':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,183,156,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '17,855':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,176,149,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '18,252':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,170,142,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '19,858':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,164,135,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '2,206':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,158,127,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '20,504':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,152,120,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '20,958':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,145,113,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '21,197':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,139,107,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '22,772':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,133,101,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '23,087':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,127,95,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '26,534':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,121,89,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '29,886':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,115,83,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '29,906':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(252,109,77,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '3,032':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(251,103,72,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '3,069':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(249,95,67,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '3,151':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(247,88,63,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '3,376':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(245,81,58,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '3,428':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(243,74,53,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '3,921':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(242,67,49,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '33,680':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(240,60,44,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '35,316':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(235,54,42,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '35,962':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(229,49,39,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '36,576':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(224,44,37,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '38,315':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(218,38,35,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '4,022':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(213,33,33,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '41,635':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(208,28,30,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '49,099':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(202,23,28,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '5,543':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(196,22,27,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '5,700':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(189,20,26,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '5,770':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(183,19,24,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '52,406':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(177,17,23,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '79,952':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(171,16,22,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '8,226':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(164,14,20,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '8,804':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(152,11,19,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '8,977':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(140,8,17,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '8226':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(127,5,16,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '920':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(115,2,14,0.726)',
-                interactive: true,
-            }
-                    break;
-                default:
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(103,0,13,0.726)',
-                interactive: true,
-            }
-                    break;
-                case '107,271':
-                    return {
-                pane: 'pane_Choroplethmap_2',
-                opacity: 1,
-                color: 'rgba(35,35,35,0.726)',
-                dashArray: '',
-                lineCap: 'butt',
-                lineJoin: 'miter',
-                weight: 1.0, 
-                fill: true,
-                fillOpacity: 1,
-                fillColor: 'rgba(253,222,207,0.726)',
-                interactive: true,
-            }
-                    break;
-            }
-        }
-        map.createPane('pane_Choroplethmap_2');
-        map.getPane('pane_Choroplethmap_2').style.zIndex = 402;
-        map.getPane('pane_Choroplethmap_2').style['mix-blend-mode'] = 'normal';
-        var layer_Choroplethmap_2 = new L.geoJson(json_Choroplethmap_2, {
-            attribution: '',
-            interactive: true,
-            dataVar: 'json_Choroplethmap_2',
-            layerName: 'layer_Choroplethmap_2',
-            pane: 'pane_Choroplethmap_2',
-            onEachFeature: pop_Choroplethmap_2,
-            style: style_Choroplethmap_2_0,
-        });
-        bounds_group.addLayer(layer_Choroplethmap_2);
-        map.addLayer(layer_Choroplethmap_2);
-            var title = new L.Control();
-            title.onAdd = function (map) {
-                this._div = L.DomUtil.create('div', 'info');
-                this.update();
-                return this._div;
-            };
-            title.update = function () {
-                this._div.innerHTML = '<p>Hover over the states to see the age distribution of deaths</p>';
-            };
-            title.addTo(map);
-        var baseMaps = {};
-        L.control.layers(baseMaps,{'Choropleth Map_COVID-19 Deaths<br />': layer_Choroplethmap_2,"HeatMap_Urbanized Area": layer_HeatMap_1,"OpenStreetMap": layer_OpenStreetMap_0,}).addTo(map);
-        setBounds();
-        L.ImageOverlay.include({
-            getBounds: function () {
-                return this._bounds;
-            }
-        });
-        </script>
-    </body>
+    <section class="metrics" aria-label="Performance summary">
+      <article class="metric-card">
+        <span class="metric-label">Open exposure</span>
+        <strong class="metric-value" id="openExposure">$0</strong>
+        <div class="metric-note" id="openPositions">0 active positions</div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Unrealized P/L</span>
+        <strong class="metric-value" id="unrealizedPl">$0</strong>
+        <div class="metric-note">Based on current prices</div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Realized P/L</span>
+        <strong class="metric-value" id="realizedPl">$0</strong>
+        <div class="metric-note" id="winRate">0% win rate</div>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Planned risk</span>
+        <strong class="metric-value" id="plannedRisk">$0</strong>
+        <div class="metric-note" id="riskBudget">Risk budget: $0</div>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <aside class="panel" aria-labelledby="form-title">
+        <div class="panel-header">
+          <h2 id="form-title">Add trade plan</h2>
+          <button class="btn-ghost" id="resetFormBtn" type="button">Reset</button>
+        </div>
+        <div class="panel-body">
+          <form class="trade-form" id="tradeForm">
+            <input type="hidden" id="tradeId">
+            <div class="field-grid">
+              <div class="field"><label>Symbol<input id="symbol" required maxlength="8" placeholder="AAPL"></label></div>
+              <div class="field"><label>Status<select id="status"><option>Watching</option><option>Open</option><option>Closed</option><option>Stopped</option></select></label></div>
+            </div>
+            <div class="field"><label>Setup<select id="setup"><option>Breakout</option><option>Pullback</option><option>Gap-and-go</option><option>Trend continuation</option><option>Reversal</option><option>Custom</option></select></label></div>
+            <div class="field-grid">
+              <div class="field"><label>Entry<input id="entry" type="number" min="0" step="0.01" required></label></div>
+              <div class="field"><label>Stop<input id="stop" type="number" min="0" step="0.01" required></label></div>
+            </div>
+            <div class="field-grid">
+              <div class="field"><label>Target<input id="target" type="number" min="0" step="0.01" required></label></div>
+              <div class="field"><label>Current / Exit<input id="current" type="number" min="0" step="0.01" required></label></div>
+            </div>
+            <div class="field-grid">
+              <div class="field"><label>Shares<input id="shares" type="number" min="0" step="1" required></label></div>
+              <div class="field"><label>Entry date<input id="entryDate" type="date" required></label></div>
+            </div>
+            <div class="field"><label>Notes<textarea id="notes" placeholder="Catalyst, market context, exit rules..."></textarea></label></div>
+            <button class="btn-primary" type="submit" id="saveTradeBtn">Save trade</button>
+          </form>
+        </div>
+      </aside>
+
+      <section class="panel" aria-labelledby="table-title">
+        <div class="panel-header">
+          <div>
+            <h2 id="table-title">Trade blotter</h2>
+            <div class="muted" id="tradeCount">0 trades</div>
+          </div>
+          <div class="toolbar">
+            <input id="searchInput" type="search" placeholder="Search symbol or setup">
+            <select id="statusFilter" aria-label="Filter by status">
+              <option value="All">All statuses</option>
+              <option>Watching</option>
+              <option>Open</option>
+              <option>Closed</option>
+              <option>Stopped</option>
+            </select>
+            <button class="btn-danger" id="clearBtn" type="button">Clear all</button>
+          </div>
+        </div>
+        <div class="trade-table-wrap">
+          <table aria-describedby="tradeCount">
+            <thead>
+              <tr>
+                <th>Trade</th>
+                <th>Status</th>
+                <th>Plan</th>
+                <th>Risk</th>
+                <th>P/L</th>
+                <th>R Multiple</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tradeRows"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState">
+            <h3>No trades yet</h3>
+            <p>Add a trade plan or load the sample swing trades to get started.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="insights" aria-label="Planner insights">
+            <article class="insight-card"><strong>Position sizing</strong><span id="sizeInsight">Add a plan to calculate suggested share size.</span></article>
+            <article class="insight-card"><strong>Reward quality</strong><span id="rewardInsight">Target trades with at least a 2R reward profile.</span></article>
+            <article class="insight-card"><strong>Review habit</strong><span id="reviewInsight">Keep notes on thesis, invalidation, and exit discipline.</span></article>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = 'stitch-swing-trade-tracker-v1';
+    const SETTINGS_KEY = 'stitch-swing-trade-settings-v1';
+
+    const sampleTrades = [
+      { id: crypto.randomUUID(), symbol: 'NVDA', status: 'Open', setup: 'Pullback', entry: 128.4, stop: 121.8, target: 145, current: 136.25, shares: 25, entryDate: '2026-06-01', notes: 'Holding above rising 20-day average; scale at first target.' },
+      { id: crypto.randomUUID(), symbol: 'MSFT', status: 'Watching', setup: 'Breakout', entry: 438, stop: 421.5, target: 476, current: 432.8, shares: 12, entryDate: '2026-06-10', notes: 'Needs volume expansion through resistance before entry.' },
+      { id: crypto.randomUUID(), symbol: 'SMH', status: 'Closed', setup: 'Trend continuation', entry: 248.3, stop: 237.2, target: 272, current: 269.4, shares: 18, entryDate: '2026-05-13', notes: 'Exited into strength before CPI event.' }
+    ];
+
+    const state = {
+      trades: loadTrades(),
+      settings: loadSettings()
+    };
+
+    const els = {
+      accountBalance: document.querySelector('#accountBalance'),
+      riskPercent: document.querySelector('#riskPercent'),
+      holdingWindow: document.querySelector('#holdingWindow'),
+      tradeForm: document.querySelector('#tradeForm'),
+      tradeId: document.querySelector('#tradeId'),
+      symbol: document.querySelector('#symbol'),
+      status: document.querySelector('#status'),
+      setup: document.querySelector('#setup'),
+      entry: document.querySelector('#entry'),
+      stop: document.querySelector('#stop'),
+      target: document.querySelector('#target'),
+      current: document.querySelector('#current'),
+      shares: document.querySelector('#shares'),
+      entryDate: document.querySelector('#entryDate'),
+      notes: document.querySelector('#notes'),
+      saveTradeBtn: document.querySelector('#saveTradeBtn'),
+      resetFormBtn: document.querySelector('#resetFormBtn'),
+      tradeRows: document.querySelector('#tradeRows'),
+      emptyState: document.querySelector('#emptyState'),
+      tradeCount: document.querySelector('#tradeCount'),
+      searchInput: document.querySelector('#searchInput'),
+      statusFilter: document.querySelector('#statusFilter'),
+      clearBtn: document.querySelector('#clearBtn'),
+      seedBtn: document.querySelector('#seedBtn'),
+      exportBtn: document.querySelector('#exportBtn'),
+      importBtn: document.querySelector('#importBtn'),
+      importFile: document.querySelector('#importFile'),
+      openExposure: document.querySelector('#openExposure'),
+      openPositions: document.querySelector('#openPositions'),
+      unrealizedPl: document.querySelector('#unrealizedPl'),
+      realizedPl: document.querySelector('#realizedPl'),
+      winRate: document.querySelector('#winRate'),
+      plannedRisk: document.querySelector('#plannedRisk'),
+      riskBudget: document.querySelector('#riskBudget'),
+      sizeInsight: document.querySelector('#sizeInsight'),
+      rewardInsight: document.querySelector('#rewardInsight'),
+      reviewInsight: document.querySelector('#reviewInsight'),
+      toast: document.querySelector('#toast')
+    };
+
+    function loadTrades() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function loadSettings() {
+      try {
+        return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { accountBalance: 25000, riskPercent: 1, holdingWindow: '2-10 days' };
+      } catch {
+        return { accountBalance: 25000, riskPercent: 1, holdingWindow: '2-10 days' };
+      }
+    }
+
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.trades));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+    }
+
+    function money(value) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: value % 1 ? 2 : 0 }).format(value || 0);
+    }
+
+    function pct(value) {
+      return `${Number.isFinite(value) ? value.toFixed(0) : 0}%`;
+    }
+
+    function tradeMath(trade) {
+      const entry = Number(trade.entry) || 0;
+      const stop = Number(trade.stop) || 0;
+      const target = Number(trade.target) || 0;
+      const current = Number(trade.current) || 0;
+      const shares = Number(trade.shares) || 0;
+      const riskPerShare = Math.max(entry - stop, 0);
+      const plannedRisk = riskPerShare * shares;
+      const reward = Math.max(target - entry, 0) * shares;
+      const rr = plannedRisk > 0 ? reward / plannedRisk : 0;
+      const value = entry * shares;
+      const exitPrice = ['Closed', 'Stopped'].includes(trade.status) ? current : current;
+      const pl = (exitPrice - entry) * shares;
+      const rMultiple = plannedRisk > 0 ? pl / plannedRisk : 0;
+      return { riskPerShare, plannedRisk, reward, rr, value, pl, rMultiple };
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    }
+
+    function render() {
+      applySettings();
+      renderMetrics();
+      renderTable();
+      renderInsights();
+      persist();
+    }
+
+    function applySettings() {
+      els.accountBalance.value = state.settings.accountBalance;
+      els.riskPercent.value = state.settings.riskPercent;
+      els.holdingWindow.value = state.settings.holdingWindow;
+    }
+
+    function renderMetrics() {
+      const openTrades = state.trades.filter(trade => trade.status === 'Open');
+      const closedTrades = state.trades.filter(trade => ['Closed', 'Stopped'].includes(trade.status));
+      const openExposure = openTrades.reduce((sum, trade) => sum + tradeMath(trade).value, 0);
+      const unrealized = openTrades.reduce((sum, trade) => sum + tradeMath(trade).pl, 0);
+      const realized = closedTrades.reduce((sum, trade) => sum + tradeMath(trade).pl, 0);
+      const plannedRisk = state.trades.filter(trade => trade.status !== 'Closed').reduce((sum, trade) => sum + tradeMath(trade).plannedRisk, 0);
+      const winners = closedTrades.filter(trade => tradeMath(trade).pl > 0).length;
+      const winRate = closedTrades.length ? (winners / closedTrades.length) * 100 : 0;
+      const riskBudget = (Number(state.settings.accountBalance) || 0) * ((Number(state.settings.riskPercent) || 0) / 100);
+
+      els.openExposure.textContent = money(openExposure);
+      els.openPositions.textContent = `${openTrades.length} active position${openTrades.length === 1 ? '' : 's'}`;
+      setSignedMoney(els.unrealizedPl, unrealized);
+      setSignedMoney(els.realizedPl, realized);
+      els.winRate.textContent = `${pct(winRate)} win rate from ${closedTrades.length} closed trade${closedTrades.length === 1 ? '' : 's'}`;
+      els.plannedRisk.textContent = money(plannedRisk);
+      els.riskBudget.textContent = `Risk budget: ${money(riskBudget)} per trade`;
+    }
+
+    function setSignedMoney(el, value) {
+      el.textContent = `${value >= 0 ? '+' : ''}${money(value)}`;
+      el.classList.toggle('gain', value > 0);
+      el.classList.toggle('loss', value < 0);
+    }
+
+    function getFilteredTrades() {
+      const query = els.searchInput.value.trim().toLowerCase();
+      const status = els.statusFilter.value;
+      return state.trades.filter(trade => {
+        const matchesStatus = status === 'All' || trade.status === status;
+        const haystack = `${trade.symbol} ${trade.setup} ${trade.notes}`.toLowerCase();
+        return matchesStatus && haystack.includes(query);
+      });
+    }
+
+    function renderTable() {
+      const trades = getFilteredTrades();
+      els.tradeCount.textContent = `${trades.length} trade${trades.length === 1 ? '' : 's'}`;
+      els.emptyState.style.display = trades.length ? 'none' : 'block';
+      els.tradeRows.innerHTML = trades.map(trade => {
+        const math = tradeMath(trade);
+        const plClass = math.pl > 0 ? 'gain' : math.pl < 0 ? 'loss' : 'muted';
+        const rrClass = math.rr >= 2 ? 'gain' : math.rr >= 1 ? 'warn' : 'loss';
+        return `
+          <tr>
+            <td><div class="symbol">${escapeHtml(trade.symbol)}</div><div class="muted">${escapeHtml(trade.entryDate)}</div></td>
+            <td><span class="pill ${trade.status.toLowerCase()}">${escapeHtml(trade.status)}</span></td>
+            <td><strong>${escapeHtml(trade.setup)}</strong><br><span class="muted">Entry ${money(trade.entry)} · Stop ${money(trade.stop)} · Target ${money(trade.target)}</span></td>
+            <td><strong>${money(math.plannedRisk)}</strong><br><span class="muted">${money(math.riskPerShare)} / share</span></td>
+            <td><strong class="${plClass}">${math.pl >= 0 ? '+' : ''}${money(math.pl)}</strong><br><span class="muted">Current ${money(trade.current)}</span></td>
+            <td><strong class="${rrClass}">${math.rMultiple.toFixed(2)}R</strong><br><span class="muted">Plan ${math.rr.toFixed(2)}R</span></td>
+            <td>${escapeHtml(trade.notes) || '<span class="muted">No notes</span>'}</td>
+            <td><div class="row-actions"><button class="icon-btn" data-action="edit" data-id="${trade.id}" type="button">Edit</button><button class="icon-btn" data-action="delete" data-id="${trade.id}" type="button">Delete</button></div></td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderInsights() {
+      const latest = state.trades.at(-1);
+      const riskBudget = (Number(state.settings.accountBalance) || 0) * ((Number(state.settings.riskPercent) || 0) / 100);
+      if (!latest) {
+        els.sizeInsight.textContent = `With your current settings, your per-trade risk budget is ${money(riskBudget)}.`;
+        els.rewardInsight.textContent = 'Target trades with at least a 2R reward profile.';
+        els.reviewInsight.textContent = `Review candidates inside your ${state.settings.holdingWindow} holding window.`;
+        return;
+      }
+      const math = tradeMath(latest);
+      const suggestedShares = math.riskPerShare > 0 ? Math.floor(riskBudget / math.riskPerShare) : 0;
+      els.sizeInsight.textContent = `${latest.symbol}: suggested size is ${suggestedShares} shares at ${money(math.riskPerShare)} risk per share.`;
+      els.rewardInsight.textContent = `${latest.symbol} planned reward/risk is ${math.rr.toFixed(2)}R, ${math.rr >= 2 ? 'inside' : 'below'} the 2R quality benchmark.`;
+      els.reviewInsight.textContent = `${state.trades.filter(trade => trade.status === 'Watching').length} watchlist idea(s) need confirmation before entry.`;
+    }
+
+    function resetForm() {
+      els.tradeForm.reset();
+      els.tradeId.value = '';
+      els.status.value = 'Watching';
+      els.setup.value = 'Breakout';
+      els.entryDate.valueAsDate = new Date();
+      els.saveTradeBtn.textContent = 'Save trade';
+    }
+
+    function readForm() {
+      return {
+        id: els.tradeId.value || crypto.randomUUID(),
+        symbol: els.symbol.value.trim().toUpperCase(),
+        status: els.status.value,
+        setup: els.setup.value,
+        entry: Number(els.entry.value),
+        stop: Number(els.stop.value),
+        target: Number(els.target.value),
+        current: Number(els.current.value),
+        shares: Number(els.shares.value),
+        entryDate: els.entryDate.value,
+        notes: els.notes.value.trim()
+      };
+    }
+
+    function editTrade(id) {
+      const trade = state.trades.find(item => item.id === id);
+      if (!trade) return;
+      els.tradeId.value = trade.id;
+      els.symbol.value = trade.symbol;
+      els.status.value = trade.status;
+      els.setup.value = trade.setup;
+      els.entry.value = trade.entry;
+      els.stop.value = trade.stop;
+      els.target.value = trade.target;
+      els.current.value = trade.current;
+      els.shares.value = trade.shares;
+      els.entryDate.value = trade.entryDate;
+      els.notes.value = trade.notes;
+      els.saveTradeBtn.textContent = 'Update trade';
+      document.querySelector('#form-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function deleteTrade(id) {
+      state.trades = state.trades.filter(trade => trade.id !== id);
+      showToast('Trade deleted.');
+      render();
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => els.toast.classList.remove('show'), 2400);
+    }
+
+    els.tradeForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const trade = readForm();
+      if (trade.stop >= trade.entry) {
+        showToast('For long swing trades, the stop should be below entry.');
+        return;
+      }
+      const index = state.trades.findIndex(item => item.id === trade.id);
+      if (index >= 0) state.trades[index] = trade;
+      else state.trades.push(trade);
+      resetForm();
+      showToast(index >= 0 ? 'Trade updated.' : 'Trade saved.');
+      render();
+    });
+
+    els.tradeRows.addEventListener('click', event => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+      if (button.dataset.action === 'edit') editTrade(button.dataset.id);
+      if (button.dataset.action === 'delete') deleteTrade(button.dataset.id);
+    });
+
+    [els.searchInput, els.statusFilter].forEach(el => el.addEventListener('input', render));
+    els.resetFormBtn.addEventListener('click', resetForm);
+
+    [els.accountBalance, els.riskPercent, els.holdingWindow].forEach(el => {
+      el.addEventListener('input', () => {
+        state.settings = {
+          accountBalance: Number(els.accountBalance.value),
+          riskPercent: Number(els.riskPercent.value),
+          holdingWindow: els.holdingWindow.value
+        };
+        render();
+      });
+    });
+
+    els.seedBtn.addEventListener('click', () => {
+      state.trades = structuredClone(sampleTrades).map(trade => ({ ...trade, id: crypto.randomUUID() }));
+      showToast('Sample swing trades loaded.');
+      render();
+    });
+
+    els.clearBtn.addEventListener('click', () => {
+      if (!state.trades.length) return;
+      if (confirm('Clear every saved trade from this browser?')) {
+        state.trades = [];
+        showToast('All trades cleared.');
+        render();
+      }
+    });
+
+    els.exportBtn.addEventListener('click', () => {
+      const payload = JSON.stringify({ trades: state.trades, settings: state.settings, exportedAt: new Date().toISOString() }, null, 2);
+      const blob = new Blob([payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `stitch-swing-trades-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast('Backup exported.');
+    });
+
+    els.importBtn.addEventListener('click', () => els.importFile.click());
+    els.importFile.addEventListener('change', async event => {
+      const [file] = event.target.files;
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        state.trades = Array.isArray(data) ? data : (data.trades || []);
+        state.settings = data.settings || state.settings;
+        showToast('Backup imported.');
+        render();
+      } catch {
+        showToast('Import failed. Please choose a valid JSON backup.');
+      } finally {
+        event.target.value = '';
+      }
+    });
+
+    resetForm();
+    render();
+  </script>
+</body>
 </html>
